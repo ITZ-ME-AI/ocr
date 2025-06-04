@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import pytesseract
 from werkzeug.utils import secure_filename
+from multiprocessing import Pool, cpu_count
+import math
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -17,30 +19,51 @@ ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def process_frame(frame_data):
+    frame, frame_number = frame_data
+    # Convert frame to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+    # Apply thresholding to preprocess the image
+    threshold = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    
+    # Perform text detection
+    text = pytesseract.image_to_string(threshold)
+    
+    return 'abcd' in text.lower()
+
 def process_video(video_path):
     cap = cv2.VideoCapture(video_path)
-    found_text = False
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Calculate number of frames to process (1 frame per second)
+    frames_to_process = min(total_frames, int(fps * 60))  # Process at most 1 minute worth of frames
+    frame_interval = max(1, total_frames // frames_to_process)
+    
+    frames = []
+    frame_count = 0
     
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
             
-        # Convert frame to grayscale
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        # Apply thresholding to preprocess the image
-        threshold = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-        
-        # Perform text detection
-        text = pytesseract.image_to_string(threshold)
-        
-        if 'abcd' in text.lower():
-            found_text = True
+        if frame_count % frame_interval == 0:
+            frames.append((frame, frame_count))
+            
+        frame_count += 1
+        if len(frames) >= frames_to_process:
             break
     
     cap.release()
-    return found_text
+    
+    # Use multiprocessing to process frames in parallel
+    num_cores = min(cpu_count(), 3)  # Use at most 3 cores
+    with Pool(num_cores) as pool:
+        results = pool.map(process_frame, frames)
+    
+    return any(results)
 
 @app.route('/')
 def index():

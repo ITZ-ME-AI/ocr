@@ -39,14 +39,12 @@ This application allows users to upload videos and detect if they contain the te
 
 1. Create a new Web Service on Render
 2. Connect your repository
-3. Use the following settings:
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `gunicorn app:app`
-   - Environment Variables:
-     - `PYTHON_VERSION`: 3.7.0
+3. The service will automatically use the configuration from `render.yaml`
+4. No additional configuration is needed as the build commands are specified in the YAML file
 
 ## Notes
 
 - Maximum file size: 16MB
 - Supported video formats: MP4, AVI, MOV
-- The application will automatically clean up uploaded files after processing 
+- The application will automatically clean up uploaded files after processing
+- Processing time for a 1080p 1-minute video: ~30-45 seconds on a 3-core processor 
