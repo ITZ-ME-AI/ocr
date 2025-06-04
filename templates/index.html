@@ -33,6 +33,7 @@
                         <button onclick="document.getElementById('file-input').click()" class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
                             Choose File
                         </button>
+                        <p class="text-sm text-gray-500 mt-2">Maximum file size: 8MB</p>
                     </div>
                 </div>
 
@@ -100,6 +101,12 @@
         }
 
         function uploadFile(file) {
+            if (file.size > 8 * 1024 * 1024) {  // 8MB in bytes
+                result.classList.remove('hidden');
+                result.innerHTML = `<div class="bg-red-100 text-red-700 p-4 rounded">Error: File size exceeds 8MB limit</div>`;
+                return;
+            }
+
             const formData = new FormData();
             formData.append('video', file);
 
