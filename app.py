@@ -7,6 +7,14 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
+# Configure Tesseract path based on environment
+if os.environ.get('RENDER'):
+    # Render environment
+    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+else:
+    # Local development environment
+    pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract'  # macOS default with brew
+
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
 if not os.path.exists(UPLOAD_FOLDER):
