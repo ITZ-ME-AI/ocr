@@ -3,17 +3,42 @@ import cv2
 import numpy as np
 import pytesseract
 import os
+import subprocess
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
 # Configure Tesseract path based on environment
-if os.environ.get('RENDER'):
-    # Render environment
-    pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
-else:
-    # Local development environment
-    pytesseract.pytesseract.tesseract_cmd = '/usr/local/bin/tesseract'  # macOS default with brew
+def find_tesseract_path():
+    try:
+        # Try to find tesseract in common locations
+        possible_paths = [
+            '/usr/bin/tesseract',
+            '/usr/local/bin/tesseract',
+            '/opt/homebrew/bin/tesseract',  # macOS with Homebrew
+            subprocess.check_output(['which', 'tesseract']).decode().strip()
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+                
+        # If not found in common locations, try to find it in PATH
+        tesseract_path = subprocess.check_output(['which', 'tesseract']).decode().strip()
+        if tesseract_path:
+            return tesseract_path
+            
+    except subprocess.CalledProcessError:
+        pass
+        
+    # Default paths based on environment
+    if os.environ.get('RENDER'):
+        return '/usr/bin/tesseract'
+    else:
+        return '/usr/local/bin/tesseract'
+
+# Set Tesseract path
+pytesseract.pytesseract.tesseract_cmd = find_tesseract_path()
 
 # Configure upload folder
 UPLOAD_FOLDER = 'uploads'
